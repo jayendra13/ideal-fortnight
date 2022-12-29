@@ -7,16 +7,16 @@ you can go through
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range
 """
 
-import os
+import argparse
 import asyncio
-import aiohttp
-import tqdm
 import logging
+import os
+from typing import Tuple
 from urllib.parse import urlparse
 
-from typing import Tuple
-
-import argparse
+import aiohttp
+import tqdm
+import math
 
 #TODO Add Chunksize as argument
 parser = argparse.ArgumentParser()
@@ -42,14 +42,13 @@ async def download_file_range(url: str,
                          headers={'Range': f'bytes={start}-{end}'}) as response:
     # Ensure the request was successful
     response.raise_for_status()
-
-    # Read the response in chunks and write to the file
+    
     while True:
       chunk = await response.content.read(chunk_size)
       if not chunk:
         break
       chunks.append(chunk)
-      pbar.update(len(chunk) - pbar.n)
+      pbar.update(len(chunk))
 
   pbar.close()
   return b''.join(chunks)
@@ -66,7 +65,7 @@ async def download_file(url: str, num_connections: int = 4):
       file_size = int(response.headers['Content-Length'])
 
     # Calculate the size of each chunk
-    chunk_size = file_size // num_connections
+    chunk_size = math.ceil(file_size / num_connections)
 
     # Create a progress bar for each task
     pbars = [
@@ -78,14 +77,15 @@ async def download_file(url: str, num_connections: int = 4):
 
     # Create a list of tasks to download each chunk concurrently
     tasks = []
-    for i in range(num_connections):
-      start = i * chunk_size
+    
+    for i,start in enumerate(range(0, file_size, chunk_size)):
       end = start + chunk_size - 1
       if i == num_connections - 1:
-        # The last chunk may be smaller than the others, so set the end to the file size
-        end = file_size - 1
-      task = asyncio.create_task(download_file_range(url, (start, end),
-                                                     session))
+          # The last chunk may be smaller than the others, so set the end to the file size
+          end = file_size - 1
+      
+      task = asyncio.create_task(
+          download_file_range(url, (start, end), session, pbars[i]))
       tasks.append(task)
 
     # Wait for all tasks to complete
