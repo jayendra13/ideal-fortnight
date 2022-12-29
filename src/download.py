@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("url", help="The url of the file to be downloaded")
 parser.add_argument("-n",
                     "--num_connections",
-                    help="Number of connections to make",
+                    help="Number of concurrent connections to download",
                     type=int,
                     default=4)
 
