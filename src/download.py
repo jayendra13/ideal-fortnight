@@ -1,4 +1,10 @@
 """
+Asynchronously download a large file by splitting it into 
+multiple chunks and downloading each chunk concurrently.
+
+Server must support range header, to understand what is range header
+you can go through 
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range
 """
 
 import os
@@ -97,11 +103,11 @@ async def main():
 
   args = parser.parse_args()
 
-
   url_info = urlparse(args.url)
   fname = os.path.basename(url_info.path)
 
-  logging.info("Downloading %s with %d connections", args.url, args.num_connections)
+  logging.info("Downloading %s with %d connections", args.url,
+               args.num_connections)
 
   file_data = await download_file(args.url, args.num_connections)
   # Do something with the file data
